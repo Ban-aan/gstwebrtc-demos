@@ -27,6 +27,15 @@ struct camera_pipe_s {
 
     GstElement *fakesink;
 
+    GstElement *audio_testsrc; 
+    GstElement *audio_convert;
+    GstElement *audio_queue;
+    GstElement *audio_encoder;
+    GstElement *rtp_payloader_audio;
+    GstElement *webrtc_queue_audio;
+    GstElement *webrtc_tee_audio;
+    GstElement *fakesink_audio;
+
     webrtc_mp_t *webrtc_mp;
 
     GstElement *source_caps_filter, *encode_caps_filter;

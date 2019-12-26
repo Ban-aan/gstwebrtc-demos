@@ -16,7 +16,7 @@ static SoupWebsocketConnection *ws_conn      = NULL;
 static webrtc_server_state_e    server_state = SERVER_STATE_UNKNOWN;
 
 static const gchar             *server_url   = "ws://localhost:8443";
-static webrtc_session_t         sessions[MAX_WEBRTC_SESSIONS] = {0};
+static webrtc_session_t         sessions[MAX_WEBRTC_SESSIONS] = {{0}};
 
 
 static void log_error(

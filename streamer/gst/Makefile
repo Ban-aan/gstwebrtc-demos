@@ -6,7 +6,7 @@ PKG_CONFIG = glib-2.0 gstreamer-1.0 libsoup-2.4 json-glib-1.0 glib-2.0 gstreamer
 VERSION = $(shell git describe --abbrev=8 --dirty --always --tags)
 
 CFLAGS_COMMON = $(INCLUDE) -Wall -Wextra -Werror -MD -MP -fPIC `pkg-config --cflags $(PKG_CONFIG)` -DVERSION=\"$(VERSION)\"
-CFLAGS_RELEASE  = -O3 -s -fexpensive-optimizations $(CFLAGS_COMMON)
+CFLAGS_RELEASE  = -O3 -Wno-unknown-warning-option  $(CFLAGS_COMMON)
 CFLAGS_DEBUG = -O0 -g $(CFLAGS_COMMON)
 LDFLAGS = `pkg-config --libs $(PKG_CONFIG)`
 

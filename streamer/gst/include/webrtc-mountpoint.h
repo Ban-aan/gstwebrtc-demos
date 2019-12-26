@@ -23,6 +23,9 @@ struct webrtc_mp_s {
     GstElement**       webrtcbins;
     GstPad**           tee_pads;
     GstPad**           bin_pads;
+    
+    GstPad**           audio_tee_pads;
+    GstPad**           audio_bin_pads;
     webrtc_session_t** session_refs;
     size_t             bin_count;
 };

@@ -22,31 +22,33 @@ camera_pipe_t* camera_pipe_create()
     }
 
     /* Create Gst elements */
-    data->video_testsrc = gst_element_factory_make("videotestsrc",
-                                                   "videotestsrc");
-    data->video_convert = gst_element_factory_make("videoconvert",
-                                                   "videoconvert");
+    data->video_testsrc = gst_element_factory_make("videotestsrc", "videotestsrc");
+    data->video_convert = gst_element_factory_make("videoconvert", "videoconvert");
     data->queue         = gst_element_factory_make("queue", "queue");
 
 #ifdef __aarch64__
-    data->video_encoder = gst_element_factory_make("omxh264enc",
-                                                   "video_encoder");
+    data->video_encoder = gst_element_factory_make("omxh264enc", "video_encoder");
 #else
-    data->video_encoder = gst_element_factory_make("vaapih264enc",
-                                                   "video_encoder");
+    data->video_encoder = gst_element_factory_make("vaapih264enc", "video_encoder");
     if (!data->video_encoder) {
-        data->video_encoder = gst_element_factory_make("x264enc",
-                                                       "video_encoder");
+        data->video_encoder = gst_element_factory_make("x264enc", "video_encoder");
     }
 #endif
 
-    data->rtp_payloader = gst_element_factory_make("rtph264pay",
-                                                  "rtp_payloader");
-
+    data->rtp_payloader = gst_element_factory_make("rtph264pay", "rtp_payloader");
 
     data->webrtc_queue = gst_element_factory_make("queue", "webrtc_queue");
     data->webrtc_tee   = gst_element_factory_make("tee", "webrtc_tee");
     data->fakesink     = gst_element_factory_make("fakesink", "fakesink");
+
+    data->audio_testsrc = gst_element_factory_make("audiotestsrc", "audiotestsrc");
+    data->audio_convert = gst_element_factory_make("audioconvert", "audioconvert");
+    data->audio_queue = gst_element_factory_make("queue", "audioqueue");
+    data->audio_encoder = gst_element_factory_make("opusenc", "opusAudioEncoder");
+    data->rtp_payloader_audio = gst_element_factory_make("rtpopuspay", "opusAudioPayer");
+    data->webrtc_queue_audio = gst_element_factory_make("queue", "webrtc_queue_audio");
+    data->webrtc_tee_audio = gst_element_factory_make("tee", "webrtc_audio");
+    data->fakesink_audio = gst_element_factory_make("fakesink", "fakesink_audio");
 
 
     data->webrtc_mp     = webrtc_mp_create(data);
@@ -56,11 +58,9 @@ camera_pipe_t* camera_pipe_create()
     }
 
     /* Make capsfilters */
-    data->encode_caps_filter  = gst_element_factory_make("capsfilter",
-                                                         "encode_caps_filter");
+    data->encode_caps_filter  = gst_element_factory_make("capsfilter", "encode_caps_filter");
 
-    data->source_caps_filter  = gst_element_factory_make("capsfilter",
-                                                         "source_caps_filter");
+    data->source_caps_filter  = gst_element_factory_make("capsfilter", "source_caps_filter");
 
     data->pipeline = gst_pipeline_new("camera-pipeline");
 
@@ -73,8 +73,16 @@ camera_pipe_t* camera_pipe_create()
         return NULL;
     }
 
+    if (!data->audio_testsrc || !data->audio_convert || !data->audio_queue
+        || !data->audio_encoder || !data->rtp_payloader_audio || !data->webrtc_queue_audio
+        || !data->webrtc_tee_audio || !data->fakesink_audio) {
+        g_print("Not all audio elements could be created!\n");
+        return NULL;
+    }
+
     if (!set_properties(data)) {
         camera_pipe_delete(data);
+        g_print("ERROR setting properties!\n");
         return NULL;
     }
     /* Initialise playing state */
@@ -88,15 +96,28 @@ camera_pipe_t* camera_pipe_create()
                      data->webrtc_queue, data->webrtc_tee, data->fakesink,
                      NULL);
 
+    gst_bin_add_many(GST_BIN(data->pipeline), data->audio_testsrc,
+                     data->audio_convert, data->audio_queue,
+                     data->audio_encoder, data->rtp_payloader_audio,
+                     data->webrtc_queue_audio, data->webrtc_tee_audio, 
+                     data->fakesink_audio, NULL);
 
     /* link elements */
-
     if (!gst_element_link_many(data->video_testsrc, data->source_caps_filter,
                                data->video_convert, data->queue,
                                data->video_encoder, data->encode_caps_filter,
                                data->rtp_payloader, data->webrtc_queue,
                                data->webrtc_tee, data->fakesink, NULL)) {
         GST_ERROR("Elements could not be linked!\n");
+        camera_pipe_delete(data);
+        return NULL;
+    }
+
+    if (!gst_element_link_many(data->audio_testsrc, data->audio_convert,
+                         data->audio_queue, data->audio_encoder,
+                         data->rtp_payloader_audio, data->webrtc_queue_audio,
+                         data->webrtc_tee_audio, data->fakesink_audio, NULL)){
+        GST_ERROR("Audio Elements could not be linked!\n");
         camera_pipe_delete(data);
         return NULL;
     }
@@ -170,13 +191,25 @@ static gboolean set_properties(camera_pipe_t *data)
         return FALSE;
     }
 
+    // No audio caps needed?
+    // GstCaps = *audio_encode_caps, *audio_source_caps;
+    // GString *audio_encode_caps_str = g_string_new("");
+    // GString *audio_source_caps_str = g_string_new("");
+
+    // g_string_printf(audio_encode_caps_str, "", "");
+    // g_string_printf(audio_source_caps_str, "", "");
+
+    
+
     /* Set element properties */
     g_object_set(data->encode_caps_filter, "caps", encode_caps, NULL);
     g_object_set(data->source_caps_filter, "caps", source_caps, NULL);
 
     g_object_set(data->rtp_payloader, "config-interval", 10, "pt", 96, NULL);
-
     g_object_set(data->video_testsrc, "is-live", TRUE, NULL);
+
+    g_object_set(data->rtp_payloader_audio, "pt", 97, NULL);
+    g_object_set(data->audio_testsrc, "is-live", TRUE, NULL);
 
     return TRUE;
 }
