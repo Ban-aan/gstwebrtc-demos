@@ -19,13 +19,13 @@ struct camera_pipe_s {
     gint camera_id;
 
     GstElement *pipeline;
-    GstElement *video_testsrc, *video_convert;
-    GstElement *queue, *video_encoder;
+    // GstElement *video_testsrc, *video_convert;
+    // GstElement *queue, *video_encoder;
 
-    GstElement *rtp_payloader;
-    GstElement *webrtc_queue, *webrtc_tee;
+    // GstElement *rtp_payloader;
+    // GstElement *webrtc_queue, *webrtc_tee;
 
-    GstElement *fakesink;
+    // GstElement *fakesink;
 
     GstElement *audio_testsrc; 
     GstElement *audio_convert;
@@ -38,7 +38,7 @@ struct camera_pipe_s {
 
     webrtc_mp_t *webrtc_mp;
 
-    GstElement *source_caps_filter, *encode_caps_filter;
+    // GstElement *source_caps_filter, *encode_caps_filter;
 
     gboolean    playing;
 };

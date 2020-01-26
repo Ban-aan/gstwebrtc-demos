@@ -21,8 +21,8 @@ typedef struct webrtc_mp_s webrtc_mp_t;
 struct webrtc_mp_s {
     camera_pipe_t*     pipeline_ref;
     GstElement**       webrtcbins;
-    GstPad**           tee_pads;
-    GstPad**           bin_pads;
+    // GstPad**           tee_pads;
+    // GstPad**           bin_pads;
     
     GstPad**           audio_tee_pads;
     GstPad**           audio_bin_pads;

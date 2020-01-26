@@ -165,8 +165,8 @@ webrtc_mp_t* webrtc_mp_create(camera_pipe_t* pipeline)
     }
 
     mountpoint->webrtcbins   = NULL;
-    mountpoint->tee_pads     = NULL;
-    mountpoint->bin_pads     = NULL;
+    // mountpoint->tee_pads     = NULL;
+    // mountpoint->bin_pads     = NULL;
     mountpoint->audio_tee_pads     = NULL;
     mountpoint->audio_bin_pads     = NULL;
     mountpoint->session_refs = NULL;
@@ -184,8 +184,8 @@ void webrtc_mp_delete(webrtc_mp_t* mountpoint)
         return;
     }
     for (size_t i = 0; i < mountpoint->bin_count; i++) {
-        gst_object_unref(mountpoint->tee_pads[i]);
-        gst_object_unref(mountpoint->bin_pads[i]);
+        // gst_object_unref(mountpoint->tee_pads[i]);
+        // gst_object_unref(mountpoint->bin_pads[i]);
         gst_object_unref(mountpoint->audio_tee_pads[i]);
         gst_object_unref(mountpoint->audio_bin_pads[i]);
     }
@@ -203,13 +203,13 @@ static gboolean _webrtc_mp_reallocate(webrtc_mp_t* mountpoint)
         mountpoint->session_refs,
         sizeof(webrtc_session_t*) * mountpoint->bin_count);
 
-    GstPad** tee_pads = (GstPad**)realloc(
-        mountpoint->tee_pads,
-        sizeof(GstPad*) * mountpoint->bin_count);
+    // GstPad** tee_pads = (GstPad**)realloc(
+    //     mountpoint->tee_pads,
+    //     sizeof(GstPad*) * mountpoint->bin_count);
 
-    GstPad** bin_pads = (GstPad**)realloc(
-        mountpoint->bin_pads,
-        sizeof(GstPad*) * mountpoint->bin_count);
+    // GstPad** bin_pads = (GstPad**)realloc(
+    //     mountpoint->bin_pads,
+    //     sizeof(GstPad*) * mountpoint->bin_count);
 
     GstPad** audio_tee_pads = (GstPad**)realloc(
         mountpoint->audio_tee_pads,
@@ -220,14 +220,15 @@ static gboolean _webrtc_mp_reallocate(webrtc_mp_t* mountpoint)
         sizeof(GstPad*) * mountpoint->bin_count);
 
     if ((mountpoint->bin_count != 0) &&
-            (!webrtcbins || !session_refs || !tee_pads || !bin_pads || !audio_tee_pads || !audio_bin_pads)) {
+            (!webrtcbins || !session_refs /*|| !tee_pads || !bin_pads */ || !audio_tee_pads || !audio_bin_pads)) {
         g_printerr("ERROR: Failure allocating memory in mountpoint "
-                   "(%p, %p, %p, %p, %p, %p)\n",
-                   webrtcbins, session_refs, tee_pads, bin_pads, audio_tee_pads, audio_bin_pads);
+                //    "(%p, %p, %p, %p, %p, %p)\n",
+                "(%p, %p, %p, %p)\n",
+                   webrtcbins, session_refs, /*tee_pads, bin_pads,*/ audio_tee_pads, audio_bin_pads);
         free(webrtcbins);
         free(session_refs);
-        free(tee_pads);
-        free(bin_pads);
+        // free(tee_pads);
+        // free(bin_pads);
         free(audio_tee_pads);
         free(audio_bin_pads);
         return FALSE;
@@ -235,8 +236,8 @@ static gboolean _webrtc_mp_reallocate(webrtc_mp_t* mountpoint)
     else {
         mountpoint->webrtcbins   = webrtcbins;
         mountpoint->session_refs = session_refs;
-        mountpoint->tee_pads     = tee_pads;
-        mountpoint->bin_pads     = bin_pads;
+        // mountpoint->tee_pads     = tee_pads;
+        // mountpoint->bin_pads     = bin_pads;
         mountpoint->audio_tee_pads     = audio_tee_pads;
         mountpoint->audio_bin_pads     = audio_bin_pads;
         return TRUE;
@@ -249,14 +250,16 @@ gboolean webrtc_mp_add_element(
     webrtc_session_t* session)
 {
     if (!mountpoint) {
+        g_printerr("ERROR:");
         return FALSE;
     }
     if (!session) {
+        g_printerr("ERROR2:");
         return FALSE;
     }
     gchar *name;
     GstElement *webrtcbin;
-    GstPad *new_tee_pad, *webrtcbin_pad;
+    // GstPad *new_tee_pad, *webrtcbin_pad;
 
     GstPad *new_audio_tee_pad, *audio_webrtcbin_pad;
 
@@ -288,16 +291,16 @@ gboolean webrtc_mp_add_element(
     }
 
     /* Get pads for linking */
-    new_tee_pad   = gst_element_get_request_pad(
-        mountpoint->pipeline_ref->webrtc_tee, "src_%u");
-    webrtcbin_pad = gst_element_get_request_pad(webrtcbin, "sink_%u");
+    // new_tee_pad   = gst_element_get_request_pad(
+    //     mountpoint->pipeline_ref->webrtc_tee, "src_%u");
+    // webrtcbin_pad = gst_element_get_request_pad(webrtcbin, "sink_%u");
 
-    if (!new_tee_pad || !webrtcbin_pad) {
-        g_printerr(
-            "ERROR: Unable to get request pads for webrtcbin_%u linkage.\n",
-            session->client_uid);
-        return FALSE;
-    }
+    // if (!new_tee_pad || !webrtcbin_pad) {
+    //     g_printerr(
+    //         "ERROR: Unable to get request pads for webrtcbin_%u linkage.\n",
+    //         session->client_uid);
+    //     return FALSE;
+    // }
 
     new_audio_tee_pad = gst_element_get_request_pad(mountpoint->pipeline_ref->webrtc_tee_audio, "src_%u");
     audio_webrtcbin_pad = gst_element_get_request_pad(webrtcbin, "sink_%u");
@@ -310,28 +313,28 @@ gboolean webrtc_mp_add_element(
     }
 
     /* Link new webrtcbin to webrtc_tee */
-    GstPadLinkReturn pad_ret = gst_pad_link(new_tee_pad, webrtcbin_pad);
-    if (pad_ret != GST_PAD_LINK_OK) {
-        gst_object_unref(new_tee_pad);
-        gst_object_unref(webrtcbin_pad);
-        gst_object_unref(new_audio_tee_pad);
-        gst_object_unref(audio_webrtcbin_pad);
-        g_printerr("ERROR: Unable to link to new webrtcbin_%u: "
-                   "GstPadLinkReturn: %d\n",
-                   session->client_uid, pad_ret);
-        gst_debug_set_threshold_from_string ("*:2", TRUE);
-        return FALSE;
-    }
+    // GstPadLinkReturn pad_ret = gst_pad_link(new_tee_pad, webrtcbin_pad);
+    // if (pad_ret != GST_PAD_LINK_OK) {
+    //     gst_object_unref(new_tee_pad);
+    //     gst_object_unref(webrtcbin_pad);
+    //     gst_object_unref(new_audio_tee_pad);
+    //     gst_object_unref(audio_webrtcbin_pad);
+    //     g_printerr("ERROR: Unable to link to new webrtcbin_%u: "
+    //                "GstPadLinkReturn: %d\n",
+    //                session->client_uid, pad_ret);
+    //     gst_debug_set_threshold_from_string ("*:2", TRUE);
+    //     return FALSE;
+    // }
 
     GstPadLinkReturn audio_pad_ret = gst_pad_link(new_audio_tee_pad, audio_webrtcbin_pad);
     if (audio_pad_ret != GST_PAD_LINK_OK) {
-        gst_object_unref(new_tee_pad);
-        gst_object_unref(webrtcbin_pad);
+        // gst_object_unref(new_tee_pad);
+        // gst_object_unref(webrtcbin_pad);
         gst_object_unref(new_audio_tee_pad);
         gst_object_unref(audio_webrtcbin_pad);
         g_printerr("ERROR: Unable to link audio to new webrtcbin_%u: "
                    "GstPadLinkReturn: %d\n",
-                   session->client_uid, pad_ret);
+                   session->client_uid, audio_pad_ret);
         gst_debug_set_threshold_from_string ("*:2", TRUE);
         return FALSE;
     }
@@ -397,8 +400,8 @@ gboolean webrtc_mp_add_element(
     }
     mountpoint->webrtcbins  [mountpoint->bin_count - 1] = webrtcbin;
     mountpoint->session_refs[mountpoint->bin_count - 1] = session;
-    mountpoint->tee_pads    [mountpoint->bin_count - 1] = new_tee_pad;
-    mountpoint->bin_pads    [mountpoint->bin_count - 1] = webrtcbin_pad;
+    // mountpoint->tee_pads    [mountpoint->bin_count - 1] = new_tee_pad;
+    // mountpoint->bin_pads    [mountpoint->bin_count - 1] = webrtcbin_pad;
     mountpoint->audio_tee_pads    [mountpoint->bin_count - 1] = new_audio_tee_pad;
     mountpoint->audio_bin_pads    [mountpoint->bin_count - 1] = audio_webrtcbin_pad;
 
@@ -459,10 +462,10 @@ gboolean webrtc_mp_remove_element(
         return FALSE;
     }
     /* Unlink webrtcbin element */
-    gst_pad_unlink        (mountpoint->tee_pads[index],
-                           mountpoint->bin_pads[index]);
-    gst_element_remove_pad(mountpoint->pipeline_ref->webrtc_tee,
-                           mountpoint->tee_pads[index]);
+    // gst_pad_unlink        (mountpoint->tee_pads[index],
+    //                        mountpoint->bin_pads[index]);
+    // gst_element_remove_pad(mountpoint->pipeline_ref->webrtc_tee,
+    //                        mountpoint->tee_pads[index]);
 
     gst_pad_unlink        (mountpoint->audio_tee_pads[index],
                            mountpoint->audio_bin_pads[index]);
@@ -490,8 +493,8 @@ gboolean webrtc_mp_remove_element(
     }
 
     /* free memory allocated for bin and pads */
-    gst_object_unref(mountpoint->tee_pads  [index]);
-    gst_object_unref(mountpoint->bin_pads  [index]);
+    // gst_object_unref(mountpoint->tee_pads  [index]);
+    // gst_object_unref(mountpoint->bin_pads  [index]);
 
     gst_object_unref(mountpoint->audio_tee_pads  [index]);
     gst_object_unref(mountpoint->audio_bin_pads  [index]);
@@ -500,8 +503,8 @@ gboolean webrtc_mp_remove_element(
     for (size_t i = index; i < (mountpoint->bin_count - 1); i++) {
         mountpoint->webrtcbins  [i] = mountpoint->webrtcbins  [i + 1];
         mountpoint->session_refs[i] = mountpoint->session_refs[i + 1];
-        mountpoint->tee_pads    [i] = mountpoint->tee_pads    [i + 1];
-        mountpoint->bin_pads    [i] = mountpoint->bin_pads    [i + 1];
+        // mountpoint->tee_pads    [i] = mountpoint->tee_pads    [i + 1];
+        // mountpoint->bin_pads    [i] = mountpoint->bin_pads    [i + 1];
         mountpoint->audio_tee_pads    [i] = mountpoint->audio_tee_pads    [i + 1];
         mountpoint->audio_bin_pads    [i] = mountpoint->audio_bin_pads    [i + 1];
     }
